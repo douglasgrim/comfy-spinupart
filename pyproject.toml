@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-spinupart-custom"
+description = "Custom Nodes for SpinUpArt"
+version = "1.0.0"
+license = { file = "LICENSE" }
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/douglasgrim/comfy-spinupart"
+
+[tool.comfy]
+PublisherId = "spinupart"
+DisplayName = "SpinUpArt-Custom-Nodes"
+Icon = ""
