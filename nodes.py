@@ -4,12 +4,40 @@ from PIL import Image
 from io import BytesIO
 import base64
 import re
-
+import hashlib
+import hmac
+import os
 
 class Base64ReadyWebhook:
-    
     def __init__(self):
         pass
+
+    @staticmethod
+    def create_hmac_signature(data: bytes, key: bytes, algorithm: str = 'sha256') -> str:
+        """
+        Creates an HMAC (Keyed-Hash Message Authentication Code) signature for the
+        given data using a secret key and the specified algorithm.
+
+        HMAC provides both data integrity and authenticity, as it requires a secret
+        key that only the sender and receiver know.
+
+        Args:
+            data (bytes): The input data to sign. Must be in bytes.
+            key (bytes): The secret key for HMAC. Must be in bytes.
+            algorithm (str): The hashing algorithm to use with HMAC (e.g., 'sha256',
+                            'sha512'). Defaults to 'sha256'.
+
+        Returns:
+            str: The hexadecimal representation of the HMAC signature.
+        """
+        try:
+            # Create an HMAC object
+            # The key is crucial for authenticity
+            h = hmac.new(key, data, hashlib.sha256)
+            # Get the hexadecimal representation of the HMAC
+            return h.hexdigest()
+        except ValueError:
+            return f"Error: Algorithm '{algorithm}' not supported for HMAC."
 
     @classmethod
     def INPUT_TYPES(s):        
@@ -17,12 +45,15 @@ class Base64ReadyWebhook:
             "required": {
                 "webhook_url": ("STRING", {"default": "webhook_url_goes_here"}),
                 "b64ImageData": ("STRING", {"default": "base64_image_string_goes_here"}),
-                "post_id": ("STRING", {"default": "post_id_goes_here"})
+                "post_id": ("STRING", {"default": "post_id_goes_here"}),
+                "token": ("STRING", {
+                    "default": "tokengoeshere",
+                })
             },
             "optional": {
                 "message": ("STRING", {
                     "default": "other text goes here",
-                })
+                }),
             }
         }
 
@@ -32,16 +63,23 @@ class Base64ReadyWebhook:
     OUTPUT_NODE = True
     CATEGORY = "spinupart-utils"
 
-    def on_complete_webhook(self, webhook_url, b64ImageData, post_id, message):
 
 
-        response = requests.post(webhook_url, json={"imageData": b64ImageData, "message": message, "post_id": post_id})
+    def on_complete_webhook(self, webhook_url, b64ImageData, post_id, token, message):
+        key = os.environ['COMFYSIDE_KEY']
+        hash = Base64ReadyWebhook.create_hmac_signature(bytes(b64ImageData, encoding='utf-8'), bytes(key, encoding='utf-8'))
+        response = requests.post(webhook_url, json={
+            "imageData": b64ImageData,
+            "message": message,
+            "post_id": post_id,
+            "token": token,
+            "hash": hash
+        })
 
         return (response.text, post_id)  
 
 
 class ImageToBase64:
-    
     def __init__(self):
         pass
     
@@ -68,8 +106,6 @@ class ImageToBase64:
             buffer = BytesIO()
             img.save(buffer, quality=70, format="JPEG")
             b64string = base64.b64encode(buffer.getvalue()).decode('utf-8')
-
-            print(b64string)
 
         return {"ui": {"text": b64string}, "result": (b64string, )}  
 
