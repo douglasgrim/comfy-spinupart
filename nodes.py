@@ -66,13 +66,15 @@ class Base64ReadyWebhook:
 
 
     def on_complete_webhook(self, webhook_url, b64ImageData, post_id, token, message):
+        print("WEBHOOK HERE")
+        print(webhook_url)
         key = os.environ['COMFYSIDE_KEY']
         hash = Base64ReadyWebhook.create_hmac_signature(bytes(b64ImageData, encoding='utf-8'), bytes(key, encoding='utf-8'))
         response = requests.post(webhook_url, json={
             "imageData": b64ImageData,
             "message": message,
             "post_id": post_id,
-            "token": token,
+            "token": token, #main jwt
             "hash": hash
         })
 
@@ -89,6 +91,9 @@ class ImageToBase64:
             "required": {
                 "images": ("IMAGE", ),
             },
+            "optional": {
+                "quality": ("STRING", { "default": "70" })
+            }
         }
 
     RETURN_TYPES = ("STRING", )
@@ -97,14 +102,14 @@ class ImageToBase64:
     OUTPUT_NODE = True
     CATEGORY = "spinupart-utils"
 
-    def image_to_base64(self, images):
+    def image_to_base64(self, images, quality):
 
         b64string = ''
         for image in images:
             i = 255. * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
             buffer = BytesIO()
-            img.save(buffer, quality=70, format="JPEG")
+            img.save(buffer, quality=int(quality), format="JPEG")
             b64string = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         return {"ui": {"text": b64string}, "result": (b64string, )}  
