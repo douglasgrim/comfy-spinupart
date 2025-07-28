@@ -8,8 +8,6 @@ import hashlib
 import hmac
 import os
 
-#test
-
 class Base64ReadyWebhook:
     def __init__(self):
         pass
