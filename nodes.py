@@ -115,7 +115,7 @@ class ImageToBase64:
         return {"ui": {"text": b64string}, "result": (b64string, )}  
 
 
-class RemoveColorWords:
+class RemoveWords:
     def __init__(self):
         pass
 
@@ -125,30 +125,23 @@ class RemoveColorWords:
         return {
             "required": {
                 "description": ("STRING", {"default": ""}),
+                "removals": ("STRING", {"default": "photo photograph realistic photorealistic"}),
             },
         }
 
     RETURN_TYPES = ("STRING", )
     RETURN_NAMES = ("colorless_description", )
-    FUNCTION = "remove_color_words"
+    FUNCTION = "remove_words"
     OUTPUT_NODE = True
     CATEGORY = "spinupart-utils"
 
-    def remove_color_words(self, description):
+    def remove_words(self, description, removals):
         """
         Removes common color words from a string, case-insensitively.
         It handles common variations and cleans up extra spaces.
         """
         # A comprehensive list of common color words (you can extend this)
-        color_words = [
-            "red", "blue", "green", "yellow", "orange", "purple", "pink", "black",
-            "white", "gray", "grey", "brown", "gold", "silver", "cyan", "magenta",
-            "teal", "maroon", "navy", "olive", "lime", "aqua", "fuchsia", "indigo",
-            "violet", "beige", "turquoise", "lavender", "plum", "salmon", "khaki",
-            "peach", "coral", "crimson", "chartreuse", "ivory", "tan", "bronze",
-            "periwinkle", "saffron", "emerald", "ruby", "jade", "topaz", "pearl",
-            "mustard", "charcoal", "photo", "photograph"
-        ]
+        color_words = removals.split()
 
         # Create a regex pattern to match any of the color words as whole words
         # sorted by length descending to match longer words first (e.g., "light blue" before "blue")
@@ -173,12 +166,12 @@ class RemoveColorWords:
 NODE_CLASS_MAPPINGS = {
     "Base64ReadyWebhook": Base64ReadyWebhook,
     "ImageToBase64": ImageToBase64,
-    "RemoveColorWords": RemoveColorWords
+    "RemoveWords": RemoveWords
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Base64ReadyWebhook": "Webhook for Base64 image input",
     "ImageToBase64": "Convert Image to Base64 string",
-    "RemoveColorWords": "Removes all references to color from BLIP and related descriptions"
+    "RemoveWords": "Removes all references to color from BLIP and related descriptions"
 }
