@@ -8,6 +8,25 @@ import hashlib
 import hmac
 import os
 
+
+class AnyType(str):
+    """A socket type that matches any other type during validation."""
+    def __ne__(self, other):
+        return False
+
+
+any_type = AnyType("*")
+
+
+class FlexibleOptionalInputType(dict):
+    """Optional-input dict that accepts any dynamically added input name."""
+    def __getitem__(self, key):
+        return (any_type,)
+
+    def __contains__(self, key):
+        return True
+
+
 class Base64ReadyWebhook:
     def __init__(self):
         pass
@@ -160,18 +179,64 @@ class RemoveWords:
         return {"ui": {"text": values }, "result": (cleaned_text, )}
 
 
+class StringTemplate:
+    """Fills a template string from any number of dynamic inputs.
+
+    Inputs are added on the fly in the UI (INPUT0, INPUT1, ...) and are
+    referenced in the template as {{INPUT0}}, {{INPUT1}}, etc. Numeric
+    values are converted to text.
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "template": ("STRING", {"multiline": True, "default": "{{INPUT0}}"}),
+            },
+            "optional": FlexibleOptionalInputType(),
+        }
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, input_types):
+        # Dynamic inputs accept any type; skip default type validation.
+        return True
+
+    RETURN_TYPES = ("STRING", )
+    RETURN_NAMES = ("string", )
+    FUNCTION = "apply_template"
+    OUTPUT_NODE = True
+    CATEGORY = "spinupart-utils"
+
+    @staticmethod
+    def value_to_text(value):
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
+
+    def apply_template(self, template, **kwargs):
+        result = template
+        for name, value in kwargs.items():
+            result = result.replace("{{" + name + "}}", self.value_to_text(value))
+        return {"ui": {"text": [result]}, "result": (result, )}
+
 
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "Base64ReadyWebhook": Base64ReadyWebhook,
     "ImageToBase64": ImageToBase64,
-    "RemoveWords": RemoveWords
+    "RemoveWords": RemoveWords,
+    "SpinUpArtStringTemplate": StringTemplate,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
+# NOTE: every title starts with "SpinUpArt" so searching "spinupart" in the
+# ComfyUI node picker surfaces all nodes from this pack
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Base64ReadyWebhook": "Webhook for Base64 image input",
-    "ImageToBase64": "Convert Image to Base64 string",
-    "RemoveWords": "Removes all references to color from BLIP and related descriptions"
+    "Base64ReadyWebhook": "SpinUpArt Webhook for Base64 image input",
+    "ImageToBase64": "SpinUpArt Convert Image to Base64 string",
+    "RemoveWords": "SpinUpArt Remove words from descriptions",
+    "SpinUpArtStringTemplate": "SpinUpArt String Template ({{INPUT0}}, {{INPUT1}}, ...)",
 }
