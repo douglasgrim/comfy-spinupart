@@ -222,6 +222,64 @@ class StringTemplate:
         return {"ui": {"text": [result]}, "result": (result, )}
 
 
+class SyllableCounter:
+    """Counts syllables in a string, ignoring any text inside parentheses.
+
+    Uses a vowel-group heuristic for English: each run of vowels counts as
+    one syllable, with adjustments for silent trailing 'e' ("make"),
+    consonant + "le" endings ("table"), and silent "ed" endings ("jumped").
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "text": ("STRING", {"multiline": True, "default": ""}),
+            },
+        }
+
+    RETURN_TYPES = ("INT", )
+    RETURN_NAMES = ("syllables", )
+    FUNCTION = "count_syllables"
+    OUTPUT_NODE = True
+    CATEGORY = "spinupart-utils"
+
+    @staticmethod
+    def strip_parentheses(text):
+        # Repeat so nested parentheses like "a (b (c) d) e" are fully removed
+        while True:
+            stripped = re.sub(r'\([^()]*\)', '', text)
+            if stripped == text:
+                return stripped
+            text = stripped
+
+    @staticmethod
+    def count_word_syllables(word):
+        word = re.sub(r'[^a-z]', '', word.lower())
+        if not word:
+            return 0
+
+        count = len(re.findall(r'[aeiouy]+', word))
+
+        # Silent trailing 'e' ("make"), but keep consonant + "le" ("table")
+        if count > 1 and word.endswith('e'):
+            if not (word.endswith('le') and len(word) > 2 and word[-3] not in 'aeiouy'):
+                count -= 1
+
+        # Silent "ed" ending ("jumped"), but not after t/d ("wanted", "added")
+        if count > 1 and word.endswith('ed') and not word.endswith(('ted', 'ded')):
+            count -= 1
+
+        return max(count, 1)
+
+    def count_syllables(self, text):
+        cleaned = self.strip_parentheses(text)
+        total = sum(self.count_word_syllables(word) for word in cleaned.split())
+        return {"ui": {"text": [str(total)]}, "result": (total, )}
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -229,6 +287,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageToBase64": ImageToBase64,
     "RemoveWords": RemoveWords,
     "SpinUpArtStringTemplate": StringTemplate,
+    "SpinUpArtSyllableCounter": SyllableCounter,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -239,4 +298,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageToBase64": "SpinUpArt Convert Image to Base64 string",
     "RemoveWords": "SpinUpArt Remove words from descriptions",
     "SpinUpArtStringTemplate": "SpinUpArt String Template ({{INPUT0}}, {{INPUT1}}, ...)",
+    "SpinUpArtSyllableCounter": "SpinUpArt Syllable Counter (skips parentheses)",
 }

@@ -22,6 +22,13 @@ Example template:
 a portrait of {{INPUT0}} at {{INPUT1}} resolution, seed {{INPUT2}}
 ```
 
+### SpinUpArt Syllable Counter
+Counts the syllables in a string and outputs the total as an INT. Any text
+inside parentheses (including nested ones) is ignored. Counting uses an
+English vowel-group heuristic with adjustments for silent trailing `e`
+("make"), consonant + `le` endings ("table"), and silent `ed` endings
+("jumped").
+
 ### SpinUpArt Webhook for Base64 image input
 POSTs a base64 image payload to a webhook URL with an HMAC-SHA256 signature
 (keyed by the `COMFYSIDE_KEY` environment variable). Returns the response
