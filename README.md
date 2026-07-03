@@ -29,6 +29,19 @@ English vowel-group heuristic with adjustments for silent trailing `e`
 ("make"), consonant + `le` endings ("table"), and silent `ed` endings
 ("jumped").
 
+### SpinUpArt Syllables to Frames
+Converts a syllable count (e.g. from the Syllable Counter) into a total
+frame count for a video clip:
+
+```
+frames = ceil((syllables / syllables_per_second + additional_time) * frames_per_second)
+```
+
+Settings: `syllables_per_second` (speaking rate, default 5),
+`additional_time` in seconds (default 3), and `frames_per_second`
+(default 25). The result is rounded up so the clip is never shorter than
+the spoken text needs.
+
 ### SpinUpArt Webhook for Base64 image input
 POSTs a base64 image payload to a webhook URL with an HMAC-SHA256 signature
 (keyed by the `COMFYSIDE_KEY` environment variable). Returns the response

@@ -6,6 +6,7 @@ import base64
 import re
 import hashlib
 import hmac
+import math
 import os
 
 
@@ -280,6 +281,41 @@ class SyllableCounter:
         return {"ui": {"text": [str(total)]}, "result": (total, )}
 
 
+class SyllablesToFrames:
+    """Converts a syllable count into a total frame count.
+
+    frames = ceil((syllables / syllables_per_second + additional_time) * fps)
+    Speech duration comes from the syllable count and speaking rate, then
+    additional_time (seconds) is added, and the total is converted to frames.
+    """
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "syllables": ("INT", {"default": 0, "min": 0, "forceInput": True}),
+                "syllables_per_second": ("FLOAT", {"default": 5.0, "min": 0.1, "step": 0.1}),
+                "additional_time": ("FLOAT", {"default": 3.0, "min": 0.0, "step": 0.1}),
+                "frames_per_second": ("FLOAT", {"default": 25.0, "min": 1.0, "step": 1.0}),
+            },
+        }
+
+    RETURN_TYPES = ("INT", )
+    RETURN_NAMES = ("frames", )
+    FUNCTION = "to_frames"
+    OUTPUT_NODE = True
+    CATEGORY = "spinupart-utils"
+
+    def to_frames(self, syllables, syllables_per_second, additional_time, frames_per_second):
+        seconds = syllables / syllables_per_second + additional_time
+        # ceil so the clip is never shorter than the spoken text needs;
+        # round off float noise first so e.g. 110.00000000000001 stays 110
+        frames = math.ceil(round(seconds * frames_per_second, 6))
+        return {"ui": {"text": [str(frames)]}, "result": (frames, )}
+
+
 # A dictionary that contains all nodes you want to export with their names
 # NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
@@ -288,6 +324,7 @@ NODE_CLASS_MAPPINGS = {
     "RemoveWords": RemoveWords,
     "SpinUpArtStringTemplate": StringTemplate,
     "SpinUpArtSyllableCounter": SyllableCounter,
+    "SpinUpArtSyllablesToFrames": SyllablesToFrames,
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
@@ -299,4 +336,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "RemoveWords": "SpinUpArt Remove words from descriptions",
     "SpinUpArtStringTemplate": "SpinUpArt String Template ({{INPUT0}}, {{INPUT1}}, ...)",
     "SpinUpArtSyllableCounter": "SpinUpArt Syllable Counter (skips parentheses)",
+    "SpinUpArtSyllablesToFrames": "SpinUpArt Syllables to Frames",
 }
