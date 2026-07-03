@@ -308,7 +308,23 @@ class SyllablesToFrames:
     OUTPUT_NODE = True
     CATEGORY = "spinupart-utils"
 
+    @staticmethod
+    def as_number(value, name):
+        # Inputs can arrive as strings (e.g. wired from a text or wildcard
+        # output), so coerce everything to a number before doing math
+        try:
+            return float(str(value).strip())
+        except ValueError:
+            raise ValueError(
+                f"SyllablesToFrames: input '{name}' must be numeric, got {value!r}"
+            )
+
     def to_frames(self, syllables, syllables_per_second, additional_time, frames_per_second):
+        syllables = self.as_number(syllables, "syllables")
+        syllables_per_second = self.as_number(syllables_per_second, "syllables_per_second")
+        additional_time = self.as_number(additional_time, "additional_time")
+        frames_per_second = self.as_number(frames_per_second, "frames_per_second")
+
         seconds = syllables / syllables_per_second + additional_time
         # ceil so the clip is never shorter than the spoken text needs;
         # round off float noise first so e.g. 110.00000000000001 stays 110
