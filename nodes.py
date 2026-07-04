@@ -284,9 +284,12 @@ class SyllableCounter:
 class SyllablesToFrames:
     """Converts a syllable count into a total frame count.
 
-    frames = ceil((syllables / syllables_per_second + additional_time) * fps)
-    Speech duration comes from the syllable count and speaking rate, then
-    additional_time (seconds) is added, and the total is converted to frames.
+    frames = ceil((syllables / syllables_per_second + additional_time
+                   + syllable_groups * seconds_per_group) * fps)
+    Speech duration comes from the syllable count and speaking rate, plus
+    additional_time (seconds), plus seconds_per_group for every parenthesized
+    group — e.g. "(smiles)", "(laughs)" — found in the optional grouped_text
+    input. The total is then converted to frames.
     """
     def __init__(self):
         pass
@@ -299,6 +302,10 @@ class SyllablesToFrames:
                 "syllables_per_second": ("FLOAT", {"default": 5.0, "min": 0.1, "step": 0.1}),
                 "additional_time": ("FLOAT", {"default": 3.0, "min": 0.0, "step": 0.1}),
                 "frames_per_second": ("FLOAT", {"default": 25.0, "min": 1.0, "step": 1.0}),
+                "seconds_per_group": ("FLOAT", {"default": 3.0, "min": 0.0, "step": 0.1}),
+            },
+            "optional": {
+                "grouped_text": ("STRING", {"forceInput": True}),
             },
         }
 
@@ -319,13 +326,37 @@ class SyllablesToFrames:
                 f"SyllablesToFrames: input '{name}' must be numeric, got {value!r}"
             )
 
-    def to_frames(self, syllables, syllables_per_second, additional_time, frames_per_second):
+    @staticmethod
+    def count_syllable_groups(text):
+        """Counts top-level parenthesized groups, e.g. "(smiles)".
+
+        Tracks nesting depth so "(a (b) c)" counts as one group; unmatched
+        closing parentheses are ignored.
+        """
+        groups = 0
+        depth = 0
+        for char in text:
+            if char == '(':
+                if depth == 0:
+                    groups += 1
+                depth += 1
+            elif char == ')' and depth > 0:
+                depth -= 1
+        return groups
+
+    def to_frames(self, syllables, syllables_per_second, additional_time, frames_per_second,
+                  seconds_per_group, grouped_text=None):
         syllables = self.as_number(syllables, "syllables")
         syllables_per_second = self.as_number(syllables_per_second, "syllables_per_second")
         additional_time = self.as_number(additional_time, "additional_time")
         frames_per_second = self.as_number(frames_per_second, "frames_per_second")
+        seconds_per_group = self.as_number(seconds_per_group, "seconds_per_group")
 
-        seconds = syllables / syllables_per_second + additional_time
+        group_seconds = 0
+        if grouped_text is not None:
+            group_seconds = self.count_syllable_groups(str(grouped_text)) * seconds_per_group
+
+        seconds = syllables / syllables_per_second + additional_time + group_seconds
         # ceil so the clip is never shorter than the spoken text needs;
         # round off float noise first so e.g. 110.00000000000001 stays 110
         frames = math.ceil(round(seconds * frames_per_second, 6))

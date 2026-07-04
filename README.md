@@ -34,13 +34,20 @@ Converts a syllable count (e.g. from the Syllable Counter) into a total
 frame count for a video clip:
 
 ```
-frames = ceil((syllables / syllables_per_second + additional_time) * frames_per_second)
+frames = ceil((syllables / syllables_per_second + additional_time
+               + groups * seconds_per_group) * frames_per_second)
 ```
 
 Settings: `syllables_per_second` (speaking rate, default 5),
-`additional_time` in seconds (default 3), and `frames_per_second`
-(default 25). The result is rounded up so the clip is never shorter than
-the spoken text needs.
+`additional_time` in seconds (default 3), `frames_per_second`
+(default 25), and `seconds_per_group` (default 3). The result is rounded
+up so the clip is never shorter than the spoken text needs.
+
+The optional `grouped_text` string input adds `seconds_per_group` seconds
+for every parenthesized group it contains — e.g.
+`"he said (smiles) that we would see more (laughs)"` has two groups, adding
+6 seconds at the default. Nested parentheses count as one group. When
+`grouped_text` is not connected, no group time is added.
 
 ### SpinUpArt Webhook for Base64 image input
 POSTs a base64 image payload to a webhook URL with an HMAC-SHA256 signature
